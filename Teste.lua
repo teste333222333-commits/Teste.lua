@@ -10,50 +10,6 @@ local Window = Rayfield:CreateWindow({
         Enabled = true,
         FolderName = "MeuScriptConfig", -- Nome da pasta de salvamento
         FileName = "Config"
-    },
-    Discord = {
-        Enabled = false
-    },
-    KeySystem = false,
-})
-
--- Sistema de gerenciamento de Interface (como InterfaceManager)
-local InterfaceManager = {}
-
-function InterfaceManager:Notify(title, content)
-    Rayfield:Notify({
-        Title = title,
-        Content = content,
-        Duration = 5
-    })
-end
-
--- Sistema de salvamento (como SaveManager)
-local SaveManager = {}
-
-function SaveManager:SaveSettings()
-    Rayfield:SaveConfiguration()
-end
-
-function SaveManager:SetLibrary(lib)
-    self.Library = lib
-end
-
--- Integrando o SaveManager
-SaveManager:SetLibrary(Rayfield)
-
--- Exemplo de aba e botão
-local Tab = Window:CreateTab("Principal", 4483362458) -- ícone opcional
-
-local Section = Tab:CreateSection("Configurações")
-
-Tab:CreateButton({
-    Name = "Salvar Config",
-    Callback = function()
-        SaveManager:SaveSettings()
-        InterfaceManager:Notify("Sucesso", "Configurações salvas com sucesso!")
-    end
-})
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
