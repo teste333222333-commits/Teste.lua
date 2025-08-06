@@ -366,7 +366,325 @@ local function GetPlayerColor(player)
     end
     return player.Team == LocalPlayer.Team and Colors.Ally or Colors.Enemy
 end
+------------------------
+-- PARTE 2 - Funções auxiliares e lógica de update
+------------------------
 
---------------------------------------------------
--- (continua na próxima parte!)
---------------------------------------------------
+local function GetBoxCorners(cf, size)
+    local corners = {
+        Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
+        Vector3.new(-size.X/2, -size.Y/2, size.Z/2),
+        Vector3.new(-size.X/2, size.Y/2, -size.Z/2),
+        Vector3.new(-size.X/2, size.Y/2, size.Z/2),
+        Vector3.new(size.X/2, -size.Y/2, -size.Z/2),
+        Vector3.new(size.X/2, -size.Y/2, size.Z/2),
+        Vector3.new(size.X/2, size.Y/2, -size.Z/2),
+        Vector3.new(size.X/2, size.Y/2, size.Z/2)
+    }
+    for i, corner in ipairs(corners) do
+        corners[i] = cf:PointToWorldSpace(corner)
+    end
+    return corners
+end
+
+local function GetTracerOrigin()
+    local origin = Settings.TracerOrigin
+    if origin == "Bottom" then
+        return Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+    elseif origin == "Top" then
+        return Vector2.new(Camera.ViewportSize.X/2, 0)
+    elseif origin == "Mouse" then
+        return UserInputService:GetMouseLocation()
+    else
+        return Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    end
+end
+
+local function UpdateESP(player)
+    if not Settings.Enabled then return end
+    local esp = Drawings.ESP[player]
+    if not esp then return end
+    local character = player.Character
+    if not character then
+        for _, obj in pairs(esp.Box) do obj.Visible = false end
+        esp.Tracer.Visible = false
+        for _, obj in pairs(esp.HealthBar) do obj.Visible = false end
+        for _, obj in pairs(esp.Info) do obj.Visible = false end
+        esp.Snapline.Visible = false
+        local skeleton = Drawings.Skeleton[player]
+        if skeleton then for _, line in pairs(skeleton) do line.Visible = false end end
+        return
+    end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then
+        for _, obj in pairs(esp.Box) do obj.Visible = false end
+        esp.Tracer.Visible = false
+        for _, obj in pairs(esp.HealthBar) do obj.Visible = false end
+        for _, obj in pairs(esp.Info) do obj.Visible = false end
+        esp.Snapline.Visible = false
+        local skeleton = Drawings.Skeleton[player]
+        if skeleton then for _, line in pairs(skeleton) do line.Visible = false end end
+        return
+    end
+
+    local _, isOnScreen = Camera:WorldToViewportPoint(rootPart.Position)
+    if not isOnScreen then
+        for _, obj in pairs(esp.Box) do obj.Visible = false end
+        esp.Tracer.Visible = false
+        for _, obj in pairs(esp.HealthBar) do obj.Visible = false end
+        for _, obj in pairs(esp.Info) do obj.Visible = false end
+        esp.Snapline.Visible = false
+        local skeleton = Drawings.Skeleton[player]
+        if skeleton then for _, line in pairs(skeleton) do line.Visible = false end end
+        return
+    end
+
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then
+        for _, obj in pairs(esp.Box) do obj.Visible = false end
+        esp.Tracer.Visible = false
+        for _, obj in pairs(esp.HealthBar) do obj.Visible = false end
+        for _, obj in pairs(esp.Info) do obj.Visible = false end
+        esp.Snapline.Visible = false
+        local skeleton = Drawings.Skeleton[player]
+        if skeleton then for _, line in pairs(skeleton) do line.Visible = false end end
+        return
+    end
+
+    local pos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+    local distance = (rootPart.Position - Camera.CFrame.Position).Magnitude
+    if not onScreen or distance > Settings.MaxDistance then
+        for _, obj in pairs(esp.Box) do obj.Visible = false end
+        esp.Tracer.Visible = false
+        for _, obj in pairs(esp.HealthBar) do obj.Visible = false end
+        for _, obj in pairs(esp.Info) do obj.Visible = false end
+        esp.Snapline.Visible = false
+        return
+    end
+
+    if Settings.TeamCheck and player.Team == LocalPlayer.Team and not Settings.ShowTeam then
+        for _, obj in pairs(esp.Box) do obj.Visible = false end
+        esp.Tracer.Visible = false
+        for _, obj in pairs(esp.HealthBar) do obj.Visible = false end
+        for _, obj in pairs(esp.Info) do obj.Visible = false end
+        esp.Snapline.Visible = false
+        return
+    end
+
+    local color = GetPlayerColor(player)
+    local size = character:GetExtentsSize()
+    local cf = rootPart.CFrame
+
+    local top, top_onscreen = Camera:WorldToViewportPoint(cf * CFrame.new(0, size.Y/2, 0).Position)
+    local bottom, bottom_onscreen = Camera:WorldToViewportPoint(cf * CFrame.new(0, -size.Y/2, 0).Position)
+    if not top_onscreen or not bottom_onscreen then
+        for _, obj in pairs(esp.Box) do obj.Visible = false end
+        return
+    end
+
+    local screenSize = bottom.Y - top.Y
+    local boxWidth = screenSize * 0.65
+    local boxPosition = Vector2.new(top.X - boxWidth/2, top.Y)
+    local boxSize = Vector2.new(boxWidth, screenSize)
+
+    -- Box ESP
+    for _, obj in pairs(esp.Box) do obj.Visible = false end
+    if Settings.BoxESP then
+        if Settings.BoxStyle == "ThreeD" then
+            local front = {
+                TL = Camera:WorldToViewportPoint((cf * CFrame.new(-size.X/2, size.Y/2, -size.Z/2)).Position),
+                TR = Camera:WorldToViewportPoint((cf * CFrame.new(size.X/2, size.Y/2, -size.Z/2)).Position),
+                BL = Camera:WorldToViewportPoint((cf * CFrame.new(-size.X/2, -size.Y/2, -size.Z/2)).Position),
+                BR = Camera:WorldToViewportPoint((cf * CFrame.new(size.X/2, -size.Y/2, -size.Z/2)).Position)
+            }
+            local back = {
+                TL = Camera:WorldToViewportPoint((cf * CFrame.new(-size.X/2, size.Y/2, size.Z/2)).Position),
+                TR = Camera:WorldToViewportPoint((cf * CFrame.new(size.X/2, size.Y/2, size.Z/2)).Position),
+                BL = Camera:WorldToViewportPoint((cf * CFrame.new(-size.X/2, -size.Y/2, size.Z/2)).Position),
+                BR = Camera:WorldToViewportPoint((cf * CFrame.new(size.X/2, -size.Y/2, size.Z/2)).Position)
+            }
+            if not (front.TL.Z > 0 and front.TR.Z > 0 and front.BL.Z > 0 and front.BR.Z > 0 and
+                    back.TL.Z > 0 and back.TR.Z > 0 and back.BL.Z > 0 and back.BR.Z > 0) then
+                for _, obj in pairs(esp.Box) do obj.Visible = false end
+                return
+            end
+            local function toVector2(v3) return Vector2.new(v3.X, v3.Y) end
+            front.TL, front.TR = toVector2(front.TL), toVector2(front.TR)
+            front.BL, front.BR = toVector2(front.BL), toVector2(front.BR)
+            back.TL, back.TR = toVector2(back.TL), toVector2(back.TR)
+            back.BL, back.BR = toVector2(back.BL), toVector2(back.BR)
+            esp.Box.TopLeft.From = front.TL
+            esp.Box.TopLeft.To = front.TR
+            esp.Box.TopLeft.Visible = true
+            esp.Box.TopRight.From = front.TR
+            esp.Box.TopRight.To = front.BR
+            esp.Box.TopRight.Visible = true
+            esp.Box.BottomLeft.From = front.BL
+            esp.Box.BottomLeft.To = front.BR
+            esp.Box.BottomLeft.Visible = true
+            esp.Box.BottomRight.From = front.TL
+            esp.Box.BottomRight.To = front.BL
+            esp.Box.BottomRight.Visible = true
+            esp.Box.Left.From = back.TL
+            esp.Box.Left.To = back.TR
+            esp.Box.Left.Visible = true
+            esp.Box.Right.From = back.TR
+            esp.Box.Right.To = back.BR
+            esp.Box.Right.Visible = true
+            esp.Box.Top.From = back.BL
+            esp.Box.Top.To = back.BR
+            esp.Box.Top.Visible = true
+            esp.Box.Bottom.From = back.TL
+            esp.Box.Bottom.To = back.BL
+            esp.Box.Bottom.Visible = true
+            local function drawConnectingLine(from, to, visible)
+                local line = Drawing.new("Line")
+                line.Visible = visible
+                line.Color = color
+                line.Thickness = Settings.BoxThickness
+                line.From = from
+                line.To = to
+                return line
+            end
+            local connectors = {
+                drawConnectingLine(front.TL, back.TL, true),
+                drawConnectingLine(front.TR, back.TR, true),
+                drawConnectingLine(front.BL, back.BL, true),
+                drawConnectingLine(front.BR, back.BR, true)
+            }
+            task.spawn(function()
+                task.wait()
+                for _, line in ipairs(connectors) do
+                    line:Remove()
+                end
+            end)
+        elseif Settings.BoxStyle == "Corner" then
+            local cornerSize = boxWidth * 0.2
+            esp.Box.TopLeft.From = boxPosition
+            esp.Box.TopLeft.To = boxPosition + Vector2.new(cornerSize, 0)
+            esp.Box.TopLeft.Visible = true
+            esp.Box.TopRight.From = boxPosition + Vector2.new(boxSize.X, 0)
+            esp.Box.TopRight.To = boxPosition + Vector2.new(boxSize.X - cornerSize, 0)
+            esp.Box.TopRight.Visible = true
+            esp.Box.BottomLeft.From = boxPosition + Vector2.new(0, boxSize.Y)
+            esp.Box.BottomLeft.To = boxPosition + Vector2.new(cornerSize, boxSize.Y)
+            esp.Box.BottomLeft.Visible = true
+            esp.Box.BottomRight.From = boxPosition + Vector2.new(boxSize.X, boxSize.Y)
+            esp.Box.BottomRight.To = boxPosition + Vector2.new(boxSize.X - cornerSize, boxSize.Y)
+            esp.Box.BottomRight.Visible = true
+            esp.Box.Left.From = boxPosition
+            esp.Box.Left.To = boxPosition + Vector2.new(0, cornerSize)
+            esp.Box.Left.Visible = true
+            esp.Box.Right.From = boxPosition + Vector2.new(boxSize.X, 0)
+            esp.Box.Right.To = boxPosition + Vector2.new(boxSize.X, cornerSize)
+            esp.Box.Right.Visible = true
+            esp.Box.Top.From = boxPosition + Vector2.new(0, boxSize.Y)
+            esp.Box.Top.To = boxPosition + Vector2.new(0, boxSize.Y - cornerSize)
+            esp.Box.Top.Visible = true
+            esp.Box.Bottom.From = boxPosition + Vector2.new(boxSize.X, boxSize.Y)
+            esp.Box.Bottom.To = boxPosition + Vector2.new(boxSize.X, boxSize.Y - cornerSize)
+            esp.Box.Bottom.Visible = true
+        else -- Full box
+            esp.Box.Left.From = boxPosition
+            esp.Box.Left.To = boxPosition + Vector2.new(0, boxSize.Y)
+            esp.Box.Left.Visible = true
+            esp.Box.Right.From = boxPosition + Vector2.new(boxSize.X, 0)
+            esp.Box.Right.To = boxPosition + Vector2.new(boxSize.X, boxSize.Y)
+            esp.Box.Right.Visible = true
+            esp.Box.Top.From = boxPosition
+            esp.Box.Top.To = boxPosition + Vector2.new(boxSize.X, 0)
+            esp.Box.Top.Visible = true
+            esp.Box.Bottom.From = boxPosition + Vector2.new(0, boxSize.Y)
+            esp.Box.Bottom.To = boxPosition + Vector2.new(boxSize.X, boxSize.Y)
+            esp.Box.Bottom.Visible = true
+            esp.Box.TopLeft.Visible = false
+            esp.Box.TopRight.Visible = false
+            esp.Box.BottomLeft.Visible = false
+            esp.Box.BottomRight.Visible = false
+        end
+        for _, obj in pairs(esp.Box) do
+            if obj.Visible then
+                obj.Color = color
+                obj.Thickness = Settings.BoxThickness
+            end
+        end
+    end
+
+    -- Tracer ESP
+    if Settings.TracerESP then
+        esp.Tracer.From = GetTracerOrigin()
+        esp.Tracer.To = Vector2.new(pos.X, pos.Y)
+        esp.Tracer.Color = color
+        esp.Tracer.Visible = true
+    else
+        esp.Tracer.Visible = false
+    end
+
+    -- Health ESP
+    if Settings.HealthESP then
+        local health = humanoid.Health
+        local maxHealth = humanoid.MaxHealth
+        local healthPercent = health/maxHealth
+        local barHeight = screenSize * 0.8
+        local barWidth = 4
+        local barPos = Vector2.new(
+            boxPosition.X - barWidth - 2,
+            boxPosition.Y + (screenSize - barHeight)/2
+        )
+        esp.HealthBar.Outline.Size = Vector2.new(barWidth, barHeight)
+        esp.HealthBar.Outline.Position = barPos
+        esp.HealthBar.Outline.Visible = true
+        esp.HealthBar.Fill.Size = Vector2.new(barWidth - 2, barHeight * healthPercent)
+        esp.HealthBar.Fill.Position = Vector2.new(barPos.X + 1, barPos.Y + barHeight * (1-healthPercent))
+        esp.HealthBar.Fill.Visible = true
+        esp.HealthBar.Fill.Color = Colors.Health
+        esp.HealthBar.Text.Text = string.format("%d%s", math.floor(health), Settings.HealthTextSuffix)
+        esp.HealthBar.Text.Position = Vector2.new(barPos.X + barWidth/2, barPos.Y + barHeight/2)
+        esp.HealthBar.Text.Visible = true
+    else
+        for _, obj in pairs(esp.HealthBar) do obj.Visible = false end
+    end
+
+    -- Name ESP
+    if Settings.NameESP then
+        esp.Info.Name.Text = Settings.NameMode == "DisplayName" and player.DisplayName or player.Name
+        esp.Info.Name.Position = Vector2.new(boxPosition.X + boxSize.X/2, boxPosition.Y - 16)
+        esp.Info.Name.Visible = true
+        esp.Info.Name.Color = color
+    else
+        esp.Info.Name.Visible = false
+    end
+
+    -- Distance ESP
+    if Settings.ShowDistance then
+        esp.Info.Distance.Text = string.format("%.0f %s", distance, Settings.DistanceUnit)
+        esp.Info.Distance.Position = Vector2.new(boxPosition.X + boxSize.X/2, boxPosition.Y + boxSize.Y + 2)
+        esp.Info.Distance.Visible = true
+        esp.Info.Distance.Color = Colors.Distance
+    else
+        esp.Info.Distance.Visible = false
+    end
+
+    -- Snapline ESP
+    if Settings.Snaplines then
+        esp.Snapline.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+        esp.Snapline.To = Vector2.new(pos.X, pos.Y)
+        esp.Snapline.Color = color
+        esp.Snapline.Visible = true
+    else
+        esp.Snapline.Visible = false
+    end
+
+    -- Chams (Highlight)
+    local highlight = Highlights[player]
+    if highlight then
+        highlight.Parent = character
+        highlight.Enabled = Settings.ChamsEnabled
+        highlight.FillColor = Settings.ChamsFillColor
+        highlight.OutlineColor = Settings.ChamsOutlineColor
+        highlight.FillTransparency = Settings.ChamsTransparency
+        highlight.OutlineTransparency = Settings.ChamsOutlineTransparency
+    end
+
+    -- Skeleton ESP
+end
