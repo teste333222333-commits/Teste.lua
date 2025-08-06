@@ -1,5 +1,5 @@
 -- Rayfield ESP Avançado by teste333222333-commits
-local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source"))()
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
     Name = "ESP Avançado (Rayfield)",
@@ -688,3 +688,98 @@ local function UpdateESP(player)
 
     -- Skeleton ESP
 end
+--------------------------------------------------
+-- PARTE 3 - Skeleton, loop, eventos, finalização
+--------------------------------------------------
+    -- Skeleton ESP
+    local skeleton = Drawings.Skeleton[player]
+    if skeleton and Settings.SkeletonESP then
+        local function getPos(partName)
+            local part = character:FindFirstChild(partName)
+            if not part then return nil end
+            local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+            return onScreen and Vector2.new(pos.X, pos.Y) or nil
+        end
+        local joints = {
+            -- Head/Spine
+            {"Head", "Neck"},
+            {"Neck", "UpperTorso"},
+            {"UpperTorso", "LowerTorso"},
+            -- Left Arm
+            {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
+            -- Right Arm
+            {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
+            -- Left Leg
+            {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
+            -- Right Leg
+            {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
+        }
+        local visible = false
+        for i, pair in ipairs(joints) do
+            local fromPos = getPos(pair[1])
+            local toPos = getPos(pair[2])
+            local line = skeleton[pair[1]..pair[2]] or skeleton[i]
+            if line and fromPos and toPos then
+                line.From = fromPos
+                line.To = toPos
+                line.Color = Settings.SkeletonColor
+                line.Thickness = Settings.SkeletonThickness
+                line.Transparency = Settings.SkeletonTransparency
+                line.Visible = true
+                visible = true
+            elseif line then
+                line.Visible = false
+            end
+        end
+        -- Hide unused lines
+        if not visible then
+            for _, line in pairs(skeleton) do line.Visible = false end
+        end
+    elseif skeleton then
+        for _, line in pairs(skeleton) do line.Visible = false end
+    end
+end
+
+--------------------------------------------------
+-- Loop principal ESP
+--------------------------------------------------
+RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if not Drawings.ESP[player] then
+                CreateESP(player)
+            end
+            UpdateESP(player)
+        end
+    end
+    -- Remover ESP de jogadores que saíram
+    for player, _ in pairs(Drawings.ESP) do
+        if not Players:FindFirstChild(player.Name) then
+            RemoveESP(player)
+        end
+    end
+end)
+
+--------------------------------------------------
+-- Eventos de Players para criar/remover ESP
+--------------------------------------------------
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LocalPlayer then
+        CreateESP(player)
+    end
+end)
+Players.PlayerRemoving:Connect(function(player)
+    RemoveESP(player)
+end)
+
+--------------------------------------------------
+-- Rayfield: Salva e carrega configuração
+--------------------------------------------------
+Rayfield:LoadConfiguration()
+
+--------------------------------------------------
+-- FIM: Script ESP Avançado Rayfield
+--------------------------------------------------
+
+-- Otimizado para Roblox {lua cheat} ultra avançado, padrão profissional
+-- Se quiser adicionar mais features ou dúvidas, só pedir!
