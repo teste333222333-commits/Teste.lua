@@ -208,11 +208,11 @@ end
 local function RemoveESP(player)
     local esp = Drawings.ESP[player]
     if esp then
-        for _, obj in pairs(esp.Box) do if obj and obj.Remove then obj:Remove() end end
-         if esp.Tracer and esp.Tracer.Remove then esp.Tracer:Remove() end
-         for _, obj in pairs(esp.HealthBar) do if obj and obj.Remove then obj:Remove() end end
-         for _, obj in pairs(esp.Info) do if obj and obj.Remove then obj:Remove() end end
-        if esp.Snapline and esp.Snapline.Remove then esp.Snapline:Remove() end
+        for _, obj in pairs(esp.Box) do obj:Remove() end
+        esp.Tracer:Remove()
+        for _, obj in pairs(esp.HealthBar) do obj:Remove() end
+        for _, obj in pairs(esp.Info) do obj:Remove() end
+        esp.Snapline:Remove()
         Drawings.ESP[player] = nil
     end
 
@@ -224,8 +224,8 @@ local function RemoveESP(player)
 
     local skeleton = Drawings.Skeleton[player]
     if skeleton then
-         for _, line in pairs(skeleton) do
-             if line and line.Remove then line:Remove() end
+        for _, line in pairs(skeleton) do
+            line:Remove()
         end
         Drawings.Skeleton[player] = nil
     end
@@ -569,4 +569,9 @@ local function UpdateESP(player)
             boxPosition.Y + (screenSize - barHeight)/2
         )
 
-        esp.HealthBar.Outline.Size = Vect
+        esp.HealthBar.Outline.Size = Vector2.new(barWidth, barHeight)
+        esp.HealthBar.Outline.Position = barPos
+        esp.HealthBar.Outline.Visible = true
+
+        esp.HealthBar.Fill.Size = Vector2.new(barWidth - 2, barHeight * healthPercent)
+        esp.Hea
