@@ -1,14 +1,13 @@
--- Carregar Rayfield
-loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- Serviços
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- Tabelas de ESP
 local Drawings = {
     ESP = {},
     Tracers = {},
@@ -20,7 +19,6 @@ local Drawings = {
     Skeleton = {}
 }
 
--- Cores
 local Colors = {
     Enemy = Color3.fromRGB(255, 25, 25),
     Ally = Color3.fromRGB(25, 255, 25),
@@ -33,7 +31,6 @@ local Colors = {
 
 local Highlights = {}
 
--- Configurações
 local Settings = {
     Enabled = false,
     TeamCheck = false,
@@ -748,8 +745,7 @@ local function DisableESP()
     for _, player in ipairs(Players:GetPlayers()) do
         local esp = Drawings.ESP[player]
         if esp then
-            for _, obj in pairs(e
-                sp.Box) do obj.Visible = false end
+            for _, obj in pairs(esp.Box) do obj.Visible = false end
             esp.Tracer.Visible = false
             for _, obj in pairs(esp.HealthBar) do obj.Visible = false end
             for _, obj in pairs(esp.Info) do obj.Visible = false end
@@ -775,396 +771,353 @@ local function CleanupESP()
     Highlights = {}
 end
 
-        
+local Window = Fluent:CreateWindow({
+    Title = "WA Universal ESP",
+    SubTitle = "by WA",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+    ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
+    Config = Window:AddTab({ Title = "Config", Icon = "save" })
+}
+
+do
+    local MainSection = Tabs.ESP:AddSection("Main ESP")
+
+    local EnabledToggle = MainSection:AddToggle("Enabled", {
+        Title = "Enable ESP",
+        Default = false
+    })
+    EnabledToggle:OnChanged(function()
+        Settings.Enabled = EnabledToggle.Value
+        if not Settings.Enabled then
+            CleanupESP()
+        else
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    CreateESP(player)
+                end
+            end
+        end
+    end)
+
+    local TeamCheckToggle = MainSection:AddToggle("TeamCheck", {
+        Title = "Team Check",
+        Default = false
+    })
+    TeamCheckToggle:OnChanged(function()
+        Settings.TeamCheck = TeamCheckToggle.Value
+    end)
+
+    local ShowTeamToggle = MainSection:AddToggle("ShowTeam", {
+        Title = "Show Team",
+        Default = false
+    })
+    ShowTeamToggle:OnChanged(function()
+        Settings.ShowTeam = ShowTeamToggle.Value
+    end)
+
+    local BoxSection = Tabs.ESP:AddSection("Box ESP")
+
+    local BoxESPToggle = BoxSection:AddToggle("BoxESP", {
+        Title = "Box ESP",
+        Default = false
+    })
+    BoxESPToggle:OnChanged(function()
+        Settings.BoxESP = BoxESPToggle.Value
+    end)
+
+    local BoxStyleDropdown = BoxSection:AddDropdown("BoxStyle", {
+        Title = "Box Style",
+        Values = {"Corner", "Full", "ThreeD"},
+        Default = "Corner"
+    })
+    BoxStyleDropdown:OnChanged(function(Value)
+        Settings.BoxStyle = Value
+    end)
+
+    local TracerSection = Tabs.ESP:AddSection("Tracer ESP")
+
+    local TracerESPToggle = TracerSection:AddToggle("TracerESP", {
+        Title = "Tracer ESP",
+        Default = false
+    })
+    TracerESPToggle:OnChanged(function()
+        Settings.TracerESP = TracerESPToggle.Value
+    end)
+
+    local TracerOriginDropdown = TracerSection:AddDropdown("TracerOrigin", {
+        Title = "Tracer Origin",
+        Values = {"Bottom", "Top", "Mouse", "Center"},
+        Default = "Bottom"
+    })
+    TracerOriginDropdown:OnChanged(function(Value)
+        Settings.TracerOrigin = Value
+    end)
+
+    local ChamsSection = Tabs.ESP:AddSection("Chams")
+
+    local ChamsToggle = ChamsSection:AddToggle("ChamsEnabled", {
+        Title = "Enable Chams",
+        Default = false
+    })
+    ChamsToggle:OnChanged(function()
+        Settings.ChamsEnabled = ChamsToggle.Value
+    end)
+
+    local ChamsFillColor = ChamsSection:AddColorpicker("ChamsFillColor", {
+        Title = "Fill Color",
+        Description = "Color for visible parts",
+        Default = Settings.ChamsFillColor
+    })
+    ChamsFillColor:OnChanged(function(Value)
+        Settings.ChamsFillColor = Value
+    end)
+
+    local ChamsOccludedColor = ChamsSection:AddColorpicker("ChamsOccludedColor", {
+        Title = "Occluded Color",
+        Description = "Color for parts behind walls",
+        Default = Settings.ChamsOccludedColor
+    })
+    ChamsOccludedColor:OnChanged(function(Value)
+        Settings.ChamsOccludedColor = Value
+    end)
+
+    local ChamsOutlineColor = ChamsSection:AddColorpicker("ChamsOutlineColor", {
+        Title = "Outline Color",
+        Description = "Color for character outline",
+        Default = Settings.ChamsOutlineColor
+    })
+    ChamsOutlineColor:OnChanged(function(Value)
+        Settings.ChamsOutlineColor = Value
+    end)
+
+    local ChamsTransparency = ChamsSection:AddSlider("ChamsTransparency", {
+        Title = "Fill Transparency",
+        Description = "Transparency of the fill color",
+        Default = 0.5,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    ChamsTransparency:OnChanged(function(Value)
+        Settings.ChamsTransparency = Value
+    end)
+
+    local ChamsOutlineTransparency = ChamsSection:AddSlider("ChamsOutlineTransparency", {
+        Title = "Outline Transparency",
+        Description = "Transparency of the outline",
+        Default = 0,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    ChamsOutlineTransparency:OnChanged(function(Value)
+        Settings.ChamsOutlineTransparency = Value
+    end)
+
+    local ChamsOutlineThickness = ChamsSection:AddSlider("ChamsOutlineThickness", {
+        Title = "Outline Thickness",
+        Description = "Thickness of the outline",
+        Default = 0.1,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    ChamsOutlineThickness:OnChanged(function(Value)
+        Settings.ChamsOutlineThickness = Value
+    end)
+
+    local HealthSection = Tabs.ESP:AddSection("Health ESP")
+
+    local HealthESPToggle = HealthSection:AddToggle("HealthESP", {
+        Title = "Health Bar",
+        Default = false
+    })
+    HealthESPToggle:OnChanged(function()
+        Settings.HealthESP = HealthESPToggle.Value
+    end)
+
+    local HealthStyleDropdown = HealthSection:AddDropdown("HealthStyle", {
+        Title = "Health Style",
+        Values = {"Bar", "Text", "Both"},
+        Default = "Bar"
+    })
+    HealthStyleDropdown:OnChanged(function(Value)
+        Settings.HealthStyle = Value
+    end)
+end
+
+do
+    local ColorsSection = Tabs.Settings:AddSection("Colors")
+
+    local EnemyColor = ColorsSection:AddColorpicker("EnemyColor", {
+        Title = "Enemy Color",
+        Description = "Color for enemy players",
+        Default = Colors.Enemy
+    })
+    EnemyColor:OnChanged(function(Value)
+        Colors.Enemy = Value
+    end)
+
+    local AllyColor = ColorsSection:AddColorpicker("AllyColor", {
+        Title = "Ally Color",
+        Description = "Color for team members",
+        Default = Colors.Ally
+    })
+    AllyColor:OnChanged(function(Value)
+        Colors.Ally = Value
+    end)
+
+    local HealthColor = ColorsSection:AddColorpicker("HealthColor", {
+        Title = "Health Bar Color",
+        Description = "Color for full health",
+        Default = Colors.Health
+    })
+    HealthColor:OnChanged(function(Value)
+        Colors.Health = Value
+    end)
+
+    local BoxSection = Tabs.Settings:AddSection("Box Settings")
+
+    local BoxThickness = BoxSection:AddSlider("BoxThickness", {
+        Title = "Box Thickness",
+        Default = 1,
+        Min = 1,
+        Max = 5,
+        Rounding = 1
+    })
+    BoxThickness:OnChanged(function(Value)
+        Settings.BoxThickness = Value
+    end)
+
+    local BoxTransparency = BoxSection:AddSlider("BoxTransparency", {
+        Title = "Box Transparency",
+        Default = 1,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    BoxTransparency:OnChanged(function(Value)
+        Settings.BoxFillTransparency = Value
+    end)
+
+    local ESPSection = Tabs.Settings:AddSection("ESP Settings")
+
+    local MaxDistance = ESPSection:AddSlider("MaxDistance", {
+        Title = "Max Distance",
+        Default = 1000,
+        Min = 100,
+        Max = 5000,
+        Rounding = 0
+    })
+    MaxDistance:OnChanged(function(Value)
+        Settings.MaxDistance = Value
+    end)
+
+    local TextSize = ESPSection:AddSlider("TextSize", {
+        Title = "Text Size",
+        Default = 14,
+        Min = 10,
+        Max = 24,
+        Rounding = 0
+    })
+    TextSize:OnChanged(function(Value)
+        Settings.TextSize = Value
+    end)
+
+    local HealthTextFormat = ESPSection:AddDropdown("HealthTextFormat", {
+        Title = "Health Format",
+        Values = {"Number", "Percentage", "Both"},
+        Default = "Number"
+    })
+    HealthTextFormat:OnChanged(function(Value)
+        Settings.HealthTextFormat = Value
+    end)
+
+    local EffectsSection = Tabs.Settings:AddSection("Effects")
+
+    local RainbowToggle = EffectsSection:AddToggle("RainbowEnabled", {
+        Title = "Rainbow Mode",
+        Default = false
+    })
+    RainbowToggle:OnChanged(function()
+        Settings.RainbowEnabled = RainbowToggle.Value
+    end)
+
+    local RainbowSpeed = EffectsSection:AddSlider("RainbowSpeed", {
+        Title = "Rainbow Speed",
+        Default = 1,
+        Min = 0.1,
+        Max = 5,
+        Rounding = 1
+    })
     RainbowSpeed:OnChanged(function(Value)
         Settings.RainbowSpeed = Value
     end)
 
-    end
-end)
+    local RainbowOptions = EffectsSection:AddDropdown("RainbowParts", {
+        Title = "Rainbow Parts",
+        Values = {"All", "Box Only", "Tracers Only", "Text Only"},
+        Default = "All",
+        Multi = false
+    })
+    RainbowOptions:OnChanged(function(Value)
+        if Value == "All" then
+            Settings.RainbowBoxes = true
+            Settings.RainbowTracers = true
+            Settings.RainbowText = true
+        elseif Value == "Box Only" then
+            Settings.RainbowBoxes = true
+            Settings.RainbowTracers = false
+            Settings.RainbowText = false
+        elseif Value == "Tracers Only" then
+            Settings.RainbowBoxes = false
+            Settings.RainbowTracers = true
+            Settings.RainbowText = false
+        elseif Value == "Text Only" then
+            Settings.RainbowBoxes = false
+            Settings.RainbowTracers = false
+            Settings.RainbowText = true
+        end
+    end)
 
-Players.PlayerAdded:Connect(CreateESP)
-Players.PlayerRemoving:Connect(RemoveESP)
+    local PerformanceSection = Tabs.Settings:AddSection("Performance")
 
-for _, player in ipairs(Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        CreateESP(player)
-    end
+    local RefreshRate = PerformanceSection:AddSlider("RefreshRate", {
+        Title = "Refresh Rate",
+        Default = 144,
+        Min = 1,
+        Max = 144,
+        Rounding = 0
+    })
+    RefreshRate:OnChanged(function(Value)
+        Settings.RefreshRate = 1/Value
+    end)
 end
 
-Window:SelectTab(1)
-    Name = "WA Universal ESP",
-    LoadingTitle = "WA Universal ESP",
-    LoadingSubtitle = "by WA",
-    ConfigurationSaving = {
-       Enabled = true,
-       FolderName = "WAUniversalESP",
-       FileName = "config"
-    },
-    Discord = {
-       Enabled = false
-    },
-    KeySystem = false
-})
-
-local Tabs = {
-    ESP = Window:CreateTab("ESP", 4483362458),
-    Settings = Window:CreateTab("Settings", 4483362458),
-    Config = Window:CreateTab("Config", 4483362458)
-}
-
--- Utilidades
-local function Color3ToTable(color)
-    return {color.R, color.G, color.B}
-end
-
--- Seções ESP
 do
-    local MainSection = Tabs.ESP:CreateSection("Main ESP")
-    local EnabledToggle = MainSection:CreateToggle({
-        Name = "Enable ESP",
-        CurrentValue = false,
-        Flag = "Enabled",
-        Callback = function(Value)
-            Settings.Enabled = Value
-            if not Value then
-                CleanupESP()
-            else
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer then
-                        CreateESP(player)
-                    end
-                end
-            end
-        end
-    })
-    MainSection:CreateToggle({
-        Name = "Team Check",
-        CurrentValue = false,
-        Flag = "TeamCheck",
-        Callback = function(Value)
-            Settings.TeamCheck = Value
-        end
-    })
-    MainSection:CreateToggle({
-        Name = "Show Team",
-        CurrentValue = false,
-        Flag = "ShowTeam",
-        Callback = function(Value)
-            Settings.ShowTeam = Value
-        end
-    })
+    SaveManager:SetLibrary(Fluent)
+    InterfaceManager:SetLibrary(Fluent)
+    SaveManager:IgnoreThemeSettings()
+    SaveManager:SetIgnoreIndexes({})
+    InterfaceManager:SetFolder("WAUniversalESP")
+    SaveManager:SetFolder("WAUniversalESP/configs")
 
-    local BoxSection = Tabs.ESP:CreateSection("Box ESP")
-    BoxSection:CreateToggle({
-        Name = "Box ESP",
-        CurrentValue = false,
-        Flag = "BoxESP",
-        Callback = function(Value)
-            Settings.BoxESP = Value
-        end
-    })
-    BoxSection:CreateDropdown({
-        Name = "Box Style",
-        Options = {"Corner", "Full", "ThreeD"},
-        CurrentOption = "Corner",
-        Flag = "BoxStyle",
-        Callback = function(Value)
-            Settings.BoxStyle = Value
-        end
-    })
+    InterfaceManager:BuildInterfaceSection(Tabs.Config)
+    SaveManager:BuildConfigSection(Tabs.Config)
 
-    local TracerSection = Tabs.ESP:CreateSection("Tracer ESP")
-    TracerSection:CreateToggle({
-        Name = "Tracer ESP",
-        CurrentValue = false,
-        Flag = "TracerESP",
-        Callback = function(Value)
-            Settings.TracerESP = Value
-        end
-    })
-    TracerSection:CreateDropdown({
-        Name = "Tracer Origin",
-        Options = {"Bottom", "Top", "Mouse", "Center"},
-        CurrentOption = "Bottom",
-        Flag = "TracerOrigin",
-        Callback = function(Value)
-            Settings.TracerOrigin = Value
-        end
-    })
+    local UnloadSection = Tabs.Config:AddSection("Unload")
 
-    local ChamsSection = Tabs.ESP:CreateSection("Chams")
-    ChamsSection:CreateToggle({
-        Name = "Enable Chams",
-        CurrentValue = false,
-        Flag = "ChamsEnabled",
-        Callback = function(Value)
-            Settings.ChamsEnabled = Value
-        end
-    })
-    ChamsSection:CreateColorPicker({
-        Name = "Fill Color",
-        Color = Settings.ChamsFillColor or Color3.new(1,1,1),
-        Flag = "ChamsFillColor",
-        Callback = function(Value)
-            Settings.ChamsFillColor = Value
-        end
-    })
-    ChamsSection:CreateColorPicker({
-        Name = "Occluded Color",
-        Color = Settings.ChamsOccludedColor or Color3.new(1,0,0),
-        Flag = "ChamsOccludedColor",
-        Callback = function(Value)
-            Settings.ChamsOccludedColor = Value
-        end
-    })
-    ChamsSection:CreateColorPicker({
-        Name = "Outline Color",
-        Color = Settings.ChamsOutlineColor or Color3.new(0,0,0),
-        Flag = "ChamsOutlineColor",
-        Callback = function(Value)
-            Settings.ChamsOutlineColor = Value
-        end
-    })
-    ChamsSection:CreateSlider({
-        Name = "Fill Transparency",
-        Range = {0, 1},
-        Increment = 0.01,
-        CurrentValue = Settings.ChamsTransparency or 0.5,
-        Flag = "ChamsTransparency",
-        Callback = function(Value)
-            Settings.ChamsTransparency = Value
-        end
-    })
-    ChamsSection:CreateSlider({
-        Name = "Outline Transparency",
-        Range = {0, 1},
-        Increment = 0.01,
-        CurrentValue = Settings.ChamsOutlineTransparency or 0,
-        Flag = "ChamsOutlineTransparency",
-        Callback = function(Value)
-            Settings.ChamsOutlineTransparency = Value
-        end
-    })
-    ChamsSection:CreateSlider({
-        Name = "Outline Thickness",
-        Range = {0, 1},
-        Increment = 0.01,
-        CurrentValue = Settings.ChamsOutlineThickness or 0.1,
-        Flag = "ChamsOutlineThickness",
-        Callback = function(Value)
-            Settings.ChamsOutlineThickness = Value
-        end
-    })
-
-    local HealthSection = Tabs.ESP:CreateSection("Health ESP")
-    HealthSection:CreateToggle({
-        Name = "Health Bar",
-        CurrentValue = false,
-        Flag = "HealthESP",
-        Callback = function(Value)
-            Settings.HealthESP = Value
-        end
-    })
-    HealthSection:CreateDropdown({
-        Name = "Health Style",
-        Options = {"Bar", "Text", "Both"},
-        CurrentOption = "Bar",
-        Flag = "HealthStyle",
-        Callback = function(Value)
-            Settings.HealthStyle = Value
-        end
-    })
-
-    local SkeletonSection = Tabs.ESP:CreateSection("Skeleton ESP")
-    SkeletonSection:CreateToggle({
-        Name = "Skeleton ESP",
-        CurrentValue = false,
-        Flag = "SkeletonESP",
-        Callback = function(Value)
-            Settings.SkeletonESP = Value
-        end
-    })
-    SkeletonSection:CreateColorPicker({
-        Name = "Skeleton Color",
-        Color = Settings.SkeletonColor or Color3.new(1,1,1),
-        Flag = "SkeletonColor",
-        Callback = function(Value)
-            Settings.SkeletonColor = Value
-            for _, player in ipairs(Players:GetPlayers()) do
-                local skeleton = Drawings.Skeleton[player]
-                if skeleton then
-                    for _, line in pairs(skeleton) do
-                        line.Color = Value
-                    end
-                end
-            end
-        end
-    })
-    SkeletonSection:CreateSlider({
-        Name = "Line Thickness",
-        Range = {1, 3},
-        Increment = 1,
-        CurrentValue = Settings.SkeletonThickness or 1,
-        Flag = "SkeletonThickness",
-        Callback = function(Value)
-            Settings.SkeletonThickness = Value
-            for _, player in ipairs(Players:GetPlayers()) do
-                local skeleton = Drawings.Skeleton[player]
-                if skeleton then
-                    for _, line in pairs(skeleton) do
-                        line.Thickness = Value
-                    end
-                end
-            end
-        end
-    })
-    SkeletonSection:CreateSlider({
-        Name = "Transparency",
-        Range = {0, 1},
-        Increment = 0.01,
-        CurrentValue = Settings.SkeletonTransparency or 1,
-        Flag = "SkeletonTransparency",
-        Callback = function(Value)
-            Settings.SkeletonTransparency = Value
-            for _, player in ipairs(Players:GetPlayers()) do
-                local skeleton = Drawings.Skeleton[player]
-                if skeleton then
-                    for _, line in pairs(skeleton) do
-                        line.Transparency = Value
-                    end
-                end
-            end
-        end
-    })
-end
-
--- Settings
-do
-    local ColorsSection = Tabs.Settings:CreateSection("Colors")
-    ColorsSection:CreateColorPicker({
-        Name = "Enemy Color",
-        Color = Colors.Enemy or Color3.new(1,0,0),
-        Flag = "EnemyColor",
-        Callback = function(Value)
-            Colors.Enemy = Value
-        end
-    })
-    ColorsSection:CreateColorPicker({
-        Name = "Ally Color",
-        Color = Colors.Ally or Color3.new(0,1,0),
-        Flag = "AllyColor",
-        Callback = function(Value)
-            Colors.Ally = Value
-        end
-    })
-    ColorsSection:CreateColorPicker({
-        Name = "Health Bar Color",
-        Color = Colors.Health or Color3.new(0,1,0),
-        Flag = "HealthColor",
-        Callback = function(Value)
-            Colors.Health = Value
-        end
-    })
-    local BoxSection = Tabs.Settings:CreateSection("Box Settings")
-    BoxSection:CreateSlider({
-        Name = "Box Thickness",
-        Range = {1, 5},
-        Increment = 1,
-        CurrentValue = Settings.BoxThickness or 1,
-        Flag = "BoxThickness",
-        Callback = function(Value)
-            Settings.BoxThickness = Value
-        end
-    })
-    BoxSection:CreateSlider({
-        Name = "Box Transparency",
-        Range = {0, 1},
-        Increment = 0.01,
-        CurrentValue = Settings.BoxFillTransparency or 1,
-        Flag = "BoxTransparency",
-        Callback = function(Value)
-            Settings.BoxFillTransparency = Value
-        end
-    })
-    local ESPSection = Tabs.Settings:CreateSection("ESP Settings")
-    ESPSection:CreateSlider({
-        Name = "Max Distance",
-        Range = {100, 5000},
-        Increment = 1,
-        CurrentValue = Settings.MaxDistance or 1000,
-        Flag = "MaxDistance",
-        Callback = function(Value)
-            Settings.MaxDistance = Value
-        end
-    })
-    ESPSection:CreateSlider({
-        Name = "Text Size",
-        Range = {10, 24},
-        Increment = 1,
-        CurrentValue = Settings.TextSize or 14,
-        Flag = "TextSize",
-        Callback = function(Value)
-            Settings.TextSize = Value
-        end
-    })
-    ESPSection:CreateDropdown({
-        Name = "Health Format",
-        Options = {"Number", "Percentage", "Both"},
-        CurrentOption = "Number",
-        Flag = "HealthTextFormat",
-        Callback = function(Value)
-            Settings.HealthTextFormat = Value
-        end
-    })
-    local EffectsSection = Tabs.Settings:CreateSection("Effects")
-    EffectsSection:CreateToggle({
-        Name = "Rainbow Mode",
-        CurrentValue = false,
-        Flag = "RainbowEnabled",
-        Callback = function(Value)
-            Settings.RainbowEnabled = Value
-        end
-    })
-    EffectsSection:CreateSlider({
-        Name = "Rainbow Speed",
-        Range = {0.1, 5},
-        Increment = 0.1,
-        CurrentValue = Settings.RainbowSpeed or 1,
-        Flag = "RainbowSpeed",
-        Callback = function(Value)
-            Settings.RainbowSpeed = Value
-        end
-    })
-    EffectsSection:CreateDropdown({
-        Name = "Rainbow Parts",
-        Options = {"All", "Box Only", "Tracers Only", "Text Only"},
-        CurrentOption = "All",
-        Flag = "RainbowParts",
-        Callback = function(Value)
-            Settings.RainbowBoxes = Value == "All" or Value == "Box Only"
-            Settings.RainbowTracers = Value == "All" or Value == "Tracers Only"
-            Settings.RainbowText = Value == "All" or Value == "Text Only"
-        end
-    })
-    local PerfSection = Tabs.Settings:CreateSection("Performance")
-    PerfSection:CreateSlider({
-        Name = "Refresh Rate",
-        Range = {1, 144},
-        Increment = 1,
-        CurrentValue = 144,
-        Flag = "RefreshRate",
-        Callback = function(Value)
-            Settings.RefreshRate = 1/Value
-        end
-    })
-end
-
--- Config
-do
-    local UnloadSection = Tabs.Config:CreateSection("Unload")
-    UnloadSection:CreateButton({
-        Name = "Unload ESP",
+    local UnloadButton = UnloadSection:AddButton({
+        Title = "Unload ESP",
+        Description = "Completely remove the ESP",
         Callback = function()
             CleanupESP()
             for _, connection in pairs(getconnections(RunService.RenderStepped)) do
@@ -1180,22 +1133,21 @@ do
     })
 end
 
--- Rainbow loop
 task.spawn(function()
     while task.wait(0.1) do
-        Colors.Rainbow = Color3.fromHSV(tick() * (Settings.RainbowSpeed or 1) % 1, 1, 1)
+        Colors.Rainbow = Color3.fromHSV(tick() * Settings.RainbowSpeed % 1, 1, 1)
     end
 end)
 
--- Main ESP loop
 local lastUpdate = 0
 RunService.RenderStepped:Connect(function()
     if not Settings.Enabled then 
         DisableESP()
         return 
     end
+
     local currentTime = tick()
-    if currentTime - lastUpdate >= (Settings.RefreshRate or 0.01) then
+    if currentTime - lastUpdate >= Settings.RefreshRate then
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 if not Drawings.ESP[player] then
@@ -1217,8 +1169,74 @@ for _, player in ipairs(Players:GetPlayers()) do
     end
 end
 
-Rayfield:Notify({
+Window:SelectTab(1)
+
+Fluent:Notify({
     Title = "WA Universal ESP",
     Content = "Loaded successfully!",
     Duration = 5
 })
+
+local SkeletonSection = Tabs.ESP:AddSection("Skeleton ESP")
+
+local SkeletonESPToggle = SkeletonSection:AddToggle("SkeletonESP", {
+    Title = "Skeleton ESP",
+    Default = false
+})
+SkeletonESPToggle:OnChanged(function()
+    Settings.SkeletonESP = SkeletonESPToggle.Value
+end)
+
+local SkeletonColor = SkeletonSection:AddColorpicker("SkeletonColor", {
+    Title = "Skeleton Color",
+    Default = Settings.SkeletonColor
+})
+SkeletonColor:OnChanged(function(Value)
+    Settings.SkeletonColor = Value
+    for _, player in ipairs(Players:GetPlayers()) do
+        local skeleton = Drawings.Skeleton[player]
+        if skeleton then
+            for _, line in pairs(skeleton) do
+                line.Color = Value
+            end
+        end
+    end
+end)
+
+local SkeletonThickness = SkeletonSection:AddSlider("SkeletonThickness", {
+    Title = "Line Thickness",
+    Default = 1,
+    Min = 1,
+    Max = 3,
+    Rounding = 1
+})
+SkeletonThickness:OnChanged(function(Value)
+    Settings.SkeletonThickness = Value
+    for _, player in ipairs(Players:GetPlayers()) do
+        local skeleton = Drawings.Skeleton[player]
+        if skeleton then
+            for _, line in pairs(skeleton) do
+                line.Thickness = Value
+            end
+        end
+    end
+end)
+
+local SkeletonTransparency = SkeletonSection:AddSlider("SkeletonTransparency", {
+    Title = "Transparency",
+    Default = 1,
+    Min = 0,
+    Max = 1,
+    Rounding = 2
+})
+SkeletonTransparency:OnChanged(function(Value)
+    Settings.SkeletonTransparency = Value
+    for _, player in ipairs(Players:GetPlayers()) do
+        local skeleton = Drawings.Skeleton[player]
+        if skeleton then
+            for _, line in pairs(skeleton) do
+                line.Transparency = Value
+            end
+        end
+    end
+end)
